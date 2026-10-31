@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Lucky Dollar</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117; --card:#1a1d27; --card2:#222636; --text:#f2f4f8; --muted:#8b92a5;
+  --gold:#ffc83d; --green:#35d07f; --red:#ff5c6c; --blue:#4c8dff; --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Bengali",Arial,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+#app{max-width:480px;margin:0 auto;min-height:100%;padding:12px 14px 96px}
+
+/* Top bar */
+.topbar{background:linear-gradient(135deg,#2a2f45,#1a1d27);border-radius:var(--radius);padding:8px 14px;text-align:center;font-size:13px;color:var(--muted);margin-bottom:12px}
+.topbar b{color:var(--text)}
+
+/* Profile + balance */
+.profile{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.avatar{width:54px;height:54px;border-radius:50%;background:var(--card2);object-fit:cover;flex:none;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--gold);overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.pinfo{flex:1;min-width:0}
+.pname{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pid{font-size:12px;color:var(--muted);margin-top:3px}
+.bal{text-align:right}
+.bal .coins{font-size:24px;font-weight:800;color:var(--gold);line-height:1.1}
+.bal .usd{font-size:12px;color:var(--green);margin-top:3px}
+
+/* Banner */
+.banner{height:64px;background:var(--card);border:1px dashed #333a52;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;margin-bottom:12px;overflow:hidden}
+
+/* Stats grid */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat{background:var(--card);border-radius:14px;padding:12px;text-align:center}
+.stat .v{font-size:20px;font-weight:800}
+.stat .l{font-size:11px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+.stat.ok .v{color:var(--green)} .stat.bad .v{color:var(--red)}
+
+/* Wheel */
+.wheel-card{background:var(--card);border-radius:var(--radius);padding:18px 14px 20px;text-align:center}
+.wheel-wrap{position:relative;width:260px;height:260px;margin:6px auto 16px}
+#wheel{width:100%;height:100%;border-radius:50%;box-shadow:0 0 0 6px #2b3050,0 10px 30px rgba(0,0,0,.5);transition:transform 5s cubic-bezier(.12,.7,.1,1)}
+.pointer{position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:24px solid var(--gold);filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));z-index:2}
+.hub{position:absolute;top:50%;left:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:var(--gold);color:#1a1d27;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px #1a1d27;z-index:2}
+.btn{border:none;border-radius:999px;font-weight:800;font-size:17px;padding:14px 0;width:80%;max-width:300px;cursor:pointer;background:linear-gradient(135deg,#ffd75e,#ffb300);color:#1a1d27;box-shadow:0 6px 16px rgba(255,179,0,.25)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.hint{font-size:12px;color:var(--muted);margin-top:10px}
+
+/* Pages */
+.page{display:none}.page.active{display:block}
+.panel{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:12px}
+.panel h3{margin-bottom:10px;font-size:17px}
+.panel p{color:var(--muted);font-size:14px;line-height:1.55;margin-bottom:12px}
+.field{width:100%;background:var(--card2);border:1px solid #2f3550;border-radius:12px;padding:13px;color:var(--text);font-size:14px;margin-bottom:10px}
+.btn-sm{border:none;border-radius:12px;padding:13px 16px;font-weight:700;font-size:14px;cursor:pointer;background:var(--blue);color:#fff;width:100%}
+.btn-sm.alt{background:var(--card2);color:var(--text)}
+.linkbox{background:var(--card2);border-radius:12px;padding:12px;font-size:12px;word-break:break-all;color:var(--muted);margin-bottom:10px}
+
+/* Bottom nav */
+nav{position:fixed;left:0;right:0;bottom:0;background:#141722;border-top:1px solid #23283b;padding:8px 6px calc(8px + env(safe-area-inset-bottom));z-index:20}
+.navin{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);align-items:end}
+.nb{background:none;border:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;cursor:pointer;padding:4px 0}
+.nb .ic{font-size:21px}
+.nb.active{color:var(--gold)}
+.nb.home .ic{width:52px;height:52px;border-radius:50%;background:var(--gold);color:#1a1d27;display:flex;align-items:center;justify-content:center;margin-top:-26px;box-shadow:0 0 0 5px #141722}
+
+/* Toast / modal */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50;padding:24px}
+#modal.show{display:flex}
+.mbox{background:var(--card);border-radius:20px;padding:26px 22px;text-align:center;max-width:320px;width:100%;animation:pop .25s ease}
+.mbox .em{font-size:54px}.mbox h4{font-size:18px;margin:10px 0 6px}.mbox p{color:var(--muted);font-size:14px;margin-bottom:16px}
+@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+#toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#2a2f45;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ HOME ============ -->
+  <section id="page-home" class="page active">
+    <div class="topbar" id="userCountBar" style="display:none">👥 <b id="userCount">0</b> users</div>
+
+    <div class="profile">
+      <div class="avatar" id="avatar">?</div>
+      <div class="pinfo">
+        <div class="pname" id="pname">Loading…</div>
+        <div class="pid">ID: <span id="pid">—</span></div>
+      </div>
+      <div class="bal">
+        <div class="coins"><span id="coins">0</span> 🪙</div>
+        <div class="usd">≈ $<span id="usd">0.0000</span></div>
+      </div>
+    </div>
+
+    <div class="banner" id="banner-container">Advertisement</div>
+
+    <div class="grid">
+      <div class="stat"><div class="v" id="sDaily">0</div><div class="l">Today's Spins</div></div>
+      <div class="stat"><div class="v" id="sTotal">0</div><div class="l">Total Spins</div></div>
+      <div class="stat ok"><div class="v" id="sAdOk">0</div><div class="l">Successful Ad Views</div></div>
+      <div class="stat bad"><div class="v" id="sAdFail">0</div><div class="l">Failed Ad Views</div></div>
+      <div class="stat"><div class="v" id="sRef">0</div><div class="l">Total Referrals</div></div>
+      <div class="stat"><div style="display:flex;justify-content:space-around">
+        <div><div class="v" style="color:var(--green)" id="sRefOk">0</div><div class="l">Success</div></div>
+        <div><div class="v" style="color:var(--red)" id="sRefFail">0</div><div class="l">Failed</div></div>
+      </div></div>
+    </div>
+
+    <div class="wheel-card">
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="520" height="520"></canvas>
+        <div class="hub">🎡</div>
+      </div>
+      <button class="btn" id="spinBtn">SPIN</button>
+      <div class="hint">Watch a short ad to get one spin · <span id="spinsLeft"></span> spins left today</div>
+    </div>
+  </section>
+
+  <!-- ============ REFER ============ -->
+  <section id="page-refer" class="page">
+    <div class="panel">
+      <h3>👥 Invite Friends</h3>
+      <p>Share your personal link. When a friend joins and starts the app, it counts as a successful referral.</p>
+      <div class="linkbox" id="refLink">—</div>
+      <button class="btn-sm" id="copyRef">Copy Link</button>
+      <div style="height:8px"></div>
+      <button class="btn-sm alt" id="shareRef">Share on Telegram</button>
+    </div>
+    <div class="grid">
+      <div class="stat"><div class="v" id="rRef">0</div><div class="l">Total</div></div>
+      <div class="stat ok"><div class="v" id="rOk">0</div><div class="l">Successful</div></div>
+    </div>
+  </section>
+
+  <!-- ============ WITHDRAW ============ -->
+  <section id="page-withdraw" class="page">
+    <div class="panel">
+      <h3>💸 Withdraw</h3>
+      <p>Rate: <b>10,000 coins = $1</b>. Minimum withdrawal: <b id="minW">$1</b>.</p>
+      <p>Available: <b style="color:var(--gold)"><span id="wCoins">0</span> 🪙</b> (≈ $<span id="wUsd">0.00</span>)</p>
+      <select class="field" id="wMethod">
+        <option value="">Select method</option>
+        <option>bKash</option><option>Nagad</option><option>Binance</option><option>USDT (TRC20)</option>
+      </select>
+      <input class="field" id="wAddr" placeholder="Account number / wallet address">
+      <input class="field" id="wAmt" type="number" inputmode="numeric" placeholder="Amount in coins">
+      <button class="btn-sm" id="wSubmit">Request Withdrawal</button>
+    </div>
+  </section>
+
+  <!-- ============ SUPPORT ============ -->
+  <section id="page-support" class="page">
+    <div class="panel">
+      <h3>🛟 Support</h3>
+      <p>Having a problem with your balance, ads or withdrawal? Contact our support team and include your ID.</p>
+      <div class="linkbox">Your ID: <span id="sId">—</span></div>
+      <button class="btn-sm" id="supportBtn">Contact Support</button>
+    </div>
+  </section>
+</div>
+
+<!-- Bottom navigation -->
+<nav><div class="navin">
+  <button class="nb" id="navJoin"><span class="ic">📢</span>Join</button>
+  <button class="nb" data-page="refer"><span class="ic">👥</span>Refer</button>
+  <button class="nb home active" data-page="home"><span class="ic">🏠</span>Home</button>
+  <button class="nb" data-page="withdraw"><span class="ic">💸</span>Withdraw</button>
+  <button class="nb" data-page="support"><span class="ic">🛟</span>Support</button>
+</div></nav>
+
+<div id="modal"><div class="mbox"><div class="em" id="mEm"></div><h4 id="mTitle"></h4><p id="mText"></p><button class="btn-sm" id="mClose">OK</button></div></div>
+<div id="toast"></div>
+
+<script>
+/* =====================  CONFIG — edit these  ===================== */
+const CONFIG = {
+  BOT_USERNAME:   "YourBotUsername",              // without @
+  APP_SHORT_NAME: "",                             // Mini App short name (leave "" to use ?start= link)
+  CHANNEL_URL:    "https://t.me/Lucky_Dollar_Reward_bot_official",
+  SUPPORT_URL:    "https://t.me/YourSupport",
+  ADSGRAM_VIDEO_BLOCK_ID:  "YOUR_ADSGRAM_VIDEO_ID",
+  ADSGRAM_BANNER_BLOCK_ID: "YOUR_ADSGRAM_BANNER_ID",
+  DAILY_SPIN_LIMIT: 20,
+  COINS_PER_USD:    10000,
+  MIN_WITHDRAW_USD: 1,
+  // Optional: URL returning {"users": 1234} with your REAL user count. Leave "" to hide the bar.
+  USER_COUNT_URL: "",
+  // Optional backend. See notes at the bottom of this file.
+  API_BASE: ""
+};
+
+/* Wheel: labels & rewards. Chances after the first spin (first spin always = 500). */
+const SLICES = [
+  {label:"500", coins:500,  color:"#ff8a3d"},
+  {label:"100", coins:100,  color:"#4c8dff"},
+  {label:"☹️",  coins:0,    color:"#3a3f55"},
+  {label:"50",  coins:50,   color:"#35d07f"},
+  {label:"1",   coins:1,    color:"#a56bff"},
+  {label:"☹️",  coins:0,    color:"#2c3045"},
+  {label:"2",   coins:2,    color:"#ff5c8a"},
+  {label:"100", coins:100,  color:"#19b6c9"}
+];
+const ODDS = [          // must add up to 100
+  {coins:100, p:30},
+  {coins:0,   p:30},    // 20% "try again" + the unassigned 10% — change if you wish
+  {coins:50,  p:20},
+  {coins:1,   p:10},
+  {coins:2,   p:10}
+];
+
+/* =====================  Telegram user  ===================== */
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); try{ tg.setHeaderColor("#0f1117"); tg.setBackgroundColor("#0f1117"); }catch(e){} }
+const tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {id: 0, first_name: "Guest"};
+const startParam = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+
+/* =====================  State (localStorage demo)  =====================
+   IMPORTANT: localStorage can be edited by users. For real money/coins, keep the
+   balance and all counters on YOUR SERVER and verify tg.initData there. */
+const KEY = "ld_state_" + tgUser.id;
+const today = () => new Date().toISOString().slice(0,10);
+const defaults = {coins:0,totalSpins:0,dailySpins:0,day:today(),adOk:0,adFail:0,refTotal:0,refOk:0,refFail:0,referredBy:null};
+let S = Object.assign({}, defaults, JSON.parse(localStorage.getItem(KEY) || "{}"));
+if (S.day !== today()) { S.day = today(); S.dailySpins = 0; }
+const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+
+if (!S.referredBy && startParam && /^ref_\d+$/.test(startParam) && startParam !== "ref_" + tgUser.id) {
+  S.referredBy = startParam.slice(4);
+  api("/referral", {referrer: S.referredBy});   // server should validate & credit the referrer
+  save();
+}
+
+/* =====================  Helpers  ===================== */
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n).toLocaleString("en-US");
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2200); }
+function modal(em,title,text){ $("mEm").textContent=em; $("mTitle").textContent=title; $("mText").textContent=text; $("modal").classList.add("show"); }
+$("mClose").onclick = () => $("modal").classList.remove("show");
+async function api(path, body){
+  if (!CONFIG.API_BASE) return null;
+  try{
+    const r = await fetch(CONFIG.API_BASE + path, {method:"POST",headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(Object.assign({initData: tg ? tg.initData : ""}, body))});
+    return await r.json();
+  }catch(e){ return null; }
+}
+
+/* =====================  Render  ===================== */
+function render(){
+  $("coins").textContent = fmt(S.coins);
+  $("usd").textContent = (S.coins / CONFIG.COINS_PER_USD).toFixed(4);
+  $("sDaily").textContent = S.dailySpins;
+  $("sTotal").textContent = S.totalSpins;
+  $("sAdOk").textContent = S.adOk;
+  $("sAdFail").textContent = S.adFail;
+  $("sRef").textContent = S.refTotal; $("sRefOk").textContent = S.refOk; $("sRefFail").textContent = S.refFail;
+  $("rRef").textContent = S.refTotal; $("rOk").textContent = S.refOk;
+  $("wCoins").textContent = fmt(S.coins); $("wUsd").textContent = (S.coins / CONFIG.COINS_PER_USD).toFixed(2);
+  $("spinsLeft").textContent = Math.max(0, CONFIG.DAILY_SPIN_LIMIT - S.dailySpins);
+  save();
+}
+(function initProfile(){
+  const name = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") || "Guest";
+  $("pname").textContent = tgUser.username ? "@" + tgUser.username : name;
+  $("pid").textContent = tgUser.id || "—"; $("sId").textContent = tgUser.id || "—";
+  const av = $("avatar");
+  if (tgUser.photo_url){ const im=new Image(); im.src=tgUser.photo_url; im.onerror=()=>{av.textContent=name[0].toUpperCase()}; av.textContent=""; av.appendChild(im); }
+  else av.textContent = name[0].toUpperCase();
+  $("minW").textContent = "$" + CONFIG.MIN_WITHDRAW_USD;
+  const link = CONFIG.APP_SHORT_NAME
+    ? `https://t.me/${CONFIG.BOT_USERNAME}/${CONFIG.APP_SHORT_NAME}?startapp=ref_${tgUser.id}`
+    : `https://t.me/${CONFIG.BOT_USERNAME}?start=ref_${tgUser.id}`;
+  $("refLink").textContent = link;
+  $("copyRef").onclick = () => { navigator.clipboard.writeText(link).then(()=>toast("Link copied ✅")); };
+  $("shareRef").onclick = () => {
+    const u = "https://t.me/share/url?url=" + encodeURIComponent(link) + "&text=" + encodeURIComponent("Spin & earn coins on Lucky Dollar 🎡");
+    tg ? tg.openTelegramLink(u) : window.open(u, "_blank");
+  };
+})();
+
+/* Optional REAL user counter */
+if (CONFIG.USER_COUNT_URL){
+  fetch(CONFIG.USER_COUNT_URL).then(r=>r.json()).then(d=>{
+    $("userCount").textContent = fmt(d.users); $("userCountBar").style.display = "block";
+  }).catch(()=>{});
+}
+
+/* =====================  Navigation  ===================== */
+document.querySelectorAll(".nb[data-page]").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  $("page-" + b.dataset.page).classList.add("active");
+  document.querySelectorAll(".nb").forEach(x => x.classList.remove("active"));
+  b.classList.add("active"); window.scrollTo(0,0);
+});
+const openLink = u => tg ? (u.includes("t.me") ? tg.openTelegramLink(u) : tg.openLink(u)) : window.open(u,"_blank");
+$("navJoin").onclick = () => openLink(CONFIG.CHANNEL_URL);
+$("supportBtn").onclick = () => openLink(CONFIG.SUPPORT_URL);
+
+/* =====================  Banner ad  ===================== */
+window.addEventListener("load", () => {
+  try{
+    if (window.Adsgram && CONFIG.ADSGRAM_BANNER_BLOCK_ID.indexOf("YOUR_")!==0){
+      window.Adsgram.init({blockId: CONFIG.ADSGRAM_BANNER_BLOCK_ID}).render({container:"#banner-container"});
+    }
+  }catch(e){}
+});
+
+/* =====================  Wheel  ===================== */
+const cv = $("wheel"), ctx = cv.getContext("2d"), N = SLICES.length, ARC = 2*Math.PI/N;
+function drawWheel(){
+  const c = cv.width/2;
+  SLICES.forEach((s,i)=>{
+    const a0 = i*ARC - Math.PI/2 - ARC/2;
+    ctx.beginPath(); ctx.moveTo(c,c); ctx.arc(c,c,c-4,a0,a0+ARC); ctx.closePath();
+    ctx.fillStyle = s.color; ctx.fill(); ctx.strokeStyle="#0f1117"; ctx.lineWidth=3; ctx.stroke();
+    ctx.save(); ctx.translate(c,c); ctx.rotate(a0+ARC/2); ctx.textAlign="right"; ctx.fillStyle="#fff";
+    ctx.font = "bold 34px Arial"; ctx.shadowColor="rgba(0,0,0,.5)"; ctx.shadowBlur=4;
+    ctx.fillText(s.label, c-30, 12); ctx.restore();
+  });
+}
+drawWheel();
+
+function pickReward(){
+  if (S.totalSpins === 0) return 500;                    // first spin is always 500
+  let r = Math.random()*100, acc = 0;
+  for (const o of ODDS){ acc += o.p; if (r < acc) return o.coins; }
+  return 0;
+}
+let rotation = 0, spinning = false;
+function spinTo(coins){
+  const idxs = SLICES.map((s,i)=>s.coins===coins?i:-1).filter(i=>i>=0);
+  const idx = idxs[Math.floor(Math.random()*idxs.length)];
+  const jitter = (Math.random()-.5) * ARC * .6;
+  rotation += 360*6 + (360 - (idx*ARC + jitter) * 180/Math.PI) - (rotation % 360);
+  cv.style.transform = `rotate(${rotation}deg)`;
+  return new Promise(res => setTimeout(res, 5100));
+}
+
+/* =====================  Spin flow (ad → spin)  ===================== */
+$("spinBtn").onclick = async () => {
+  if (spinning) return;
+  if (S.dailySpins >= CONFIG.DAILY_SPIN_LIMIT) return modal("⏳","Daily limit reached","Come back tomorrow for more spins!");
+  spinning = true; $("spinBtn").disabled = true;
+  try{
+    const adOk = await showAd();
+    if (!adOk){ S.adFail++; render(); modal("☹️","Ad not completed","Please watch the full video to get your spin."); return; }
+    S.adOk++;
+    const coins = pickReward();
+    await spinTo(coins);
+    S.totalSpins++; S.dailySpins++; S.coins += coins;
+    api("/spin", {coins});
+    render();
+    if (coins > 0) modal("🎉","Congratulations!",`You have won ${fmt(coins)} coin${coins>1?"s":""}.`);
+    else modal("☹️","Try Again","Better luck next spin!");
+  } finally { spinning = false; $("spinBtn").disabled = false; }
+};
+function showAd(){
+  return new Promise(resolve => {
+    if (!window.Adsgram || CONFIG.ADSGRAM_VIDEO_BLOCK_ID.indexOf("YOUR_")===0){
+      toast("Ad network not configured"); return resolve(false);
+    }
+    window.Adsgram.init({blockId: CONFIG.ADSGRAM_VIDEO_BLOCK_ID}).show()
+      .then(() => resolve(true)).catch(() => resolve(false));
+  });
+}
+
+/* =====================  Withdraw  ===================== */
+$("wSubmit").onclick = async () => {
+  const method = $("wMethod").value, addr = $("wAddr").value.trim(), amt = parseInt($("wAmt").value,10);
+  const minCoins = CONFIG.MIN_WITHDRAW_USD * CONFIG.COINS_PER_USD;
+  if (!method || !addr || !amt) return toast("Fill in all fields");
+  if (amt < minCoins) return toast("Minimum is " + fmt(minCoins) + " coins");
+  if (amt > S.coins) return toast("Not enough balance");
+  const res = await api("/withdraw", {method, address: addr, coins: amt});
+  if (!CONFIG.API_BASE || (res && res.ok)){
+    S.coins -= amt; render();
+    modal("✅","Request sent","Your withdrawal request is being reviewed.");
+    $("wAmt").value = "";
+  } else modal("⚠️","Failed", (res && res.error) || "Could not submit request.");
+};
+
+render();
+
+/* =====================  Backend notes  =====================
+   Endpoints expected when API_BASE is set (all receive Telegram initData; verify its hash server-side):
+   POST /spin       {coins}               → store result; compute rewards on the server, not the client
+   POST /referral   {referrer}            → credit referrer, increment refTotal / refOk
+   POST /withdraw   {method,address,coins}→ {ok:true} or {ok:false,error}
+   Without a backend this file works as a demo only. */
+</script>
+</body>
+</html>
